@@ -1,26 +1,133 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --navy: #102a56;
+  --navy-soft: #1b3d74;
+  --gold: #e8b923;
+  --paper: #f4f6fb;
+  --ink: #122033;
+  --muted: #64748b;
+  --line: #e6ebf2;
+  --white: #ffffff;
+  --shadow: 0 10px 30px rgba(16, 42, 86, 0.06);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-navy: var(--navy);
+  --color-gold: var(--gold);
+  --color-paper: var(--paper);
+  --font-sans: var(--font-sans);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+.kicker {
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--navy);
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.field {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--white);
+  border-radius: 0.85rem;
+  padding: 0.65rem 0.8rem;
+  font-size: 0.95rem;
+  box-shadow: 0 1px 0 rgba(16, 42, 86, 0.02);
+}
+
+.field:focus {
+  outline: 2px solid rgba(16, 42, 86, 0.18);
+  outline-offset: 1px;
+}
+
+.btn-primary {
+  background: var(--navy);
+  color: white;
+  border-radius: 0.9rem;
+  padding: 0.7rem 1.15rem;
+  font-size: 0.92rem;
+  font-weight: 650;
+  box-shadow: 0 8px 18px rgba(16, 42, 86, 0.18);
+}
+
+.btn-primary:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  border: 1px solid var(--line);
+  background: var(--white);
+  border-radius: 0.9rem;
+  padding: 0.7rem 1.15rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.btn-danger {
+  background: #9f1239;
+  color: white;
+  border-radius: 0.9rem;
+  padding: 0.7rem 1.15rem;
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.btn-danger:disabled {
+  opacity: 0.45;
+}
+
+.btn-delete {
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: #9f1239;
+}
+
+.card,
+.card-btn {
+  border: 1px solid var(--line);
+  background: var(--white);
+  border-radius: 1.15rem;
+  padding: 1.1rem 1.2rem;
+  box-shadow: var(--shadow);
+}
+
+.card-btn {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 30px rgba(16, 42, 86, 0.08);
+  }
+}
+
+.page-title {
+  font-size: 1.85rem;
+  line-height: 1.2;
+  font-weight: 750;
+  color: var(--navy);
+}
+
+.section-title {
+  font-size: 1.35rem;
+  font-weight: 750;
+  color: var(--navy);
+}
+
+.hero-wash {
+  background:
+    linear-gradient(90deg, #ffffff 0%, rgba(255, 255, 255, 0.55) 28%, transparent 55%),
+    linear-gradient(180deg, #d8e7f6 0%, #f7f1de 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 35%, #000 100%);
 }

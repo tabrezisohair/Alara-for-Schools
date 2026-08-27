@@ -32,6 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# mailbox tokens — never commit
+/data/email-tokens.json
 
 # vercel
 .vercel
@@ -39,3 +43,22 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/data/db.json
+/public/uploads/*
+!/public/uploads/.gitkeep
+/public/posts/*
+!/public/posts/.gitkeep
+
+.cursor/
+
+# Capacitor / Android local builds
+/android/.gradle/
+/android/app/build/
+/android/build/
+/android/captures/
+/android/local.properties
+*.apk
+*.aab
+*.keystore
+!android/app/debug.keystore
