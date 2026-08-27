@@ -73,25 +73,33 @@ export async function createGeminiPackage(opts: {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("Gemini is not configured.");
 
-  const captions = await writeCaptionsAndHashtags({
-    db: opts.db,
-    job: opts.job,
-  });
+  const captions = captionsAlreadyWritten(opts.job)
+    ? opts.job.captions
+    : await writeCaptionsAndHashtags({
+        db: opts.db,
+        job: opts.job,
+      });
 
-  const uniqueFormats = [...new Set(opts.formats)];
+  // One image call: extra ratios (story/wide) reuse the square art. Image
+  // models dominate Gemini cost; a second generateContent is another full bill.
+  const primaryFormat: PosterFormat = opts.formats.includes("square")
+    ? "square"
+    : opts.formats[0] ?? "square";
   const posters: Partial<Record<PosterFormat, string>> = {};
   let posterOrigin: "gemini" | "none" = "none";
   let warning: string | undefined;
 
   try {
-    for (const format of uniqueFormats) {
-      posters[format] = await generatePosterImage({
-        key,
-        db: opts.db,
-        job: opts.job,
-        format,
-        cutoutDataUrl: opts.cutoutDataUrl,
-      });
+    const image = await generatePosterImage({
+      key,
+      db: opts.db,
+      job: opts.job,
+      format: primaryFormat,
+      cutoutDataUrl: opts.cutoutDataUrl,
+    });
+    posters[primaryFormat] = image;
+    for (const format of new Set(opts.formats)) {
+      if (!posters[format]) posters[format] = image;
     }
     posterOrigin = "gemini";
   } catch (err) {
@@ -109,6 +117,11 @@ export async function polishCaptions(opts: {
   job: CaptionDraft;
 }): Promise<Partial<Record<Channel, CaptionSet>>> {
   return writeCaptionsAndHashtags(opts);
+}
+
+function captionsAlreadyWritten(job: CaptionDraft) {
+  if (!job.channels.length) return false;
+  return job.channels.every((channel) => Boolean(job.captions[channel]?.en?.trim()));
 }
 
 async function writeCaptionsAndHashtags(opts: {

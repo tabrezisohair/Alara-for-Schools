@@ -244,7 +244,6 @@ export function CreateWizard({ db }: { db: Database }) {
     setError(null);
     try {
       const formats = formatsForChannels(channels);
-      const uniqueFormats = [...new Set(formats.map((item) => item.format))];
       const photoTreatment = brief.photoTreatment ?? "as_is";
       const source: ImageSource =
         opts?.source ??
@@ -272,7 +271,7 @@ export function CreateWizard({ db }: { db: Database }) {
               channels,
               beat: beat || undefined,
               captionLanguage: "en",
-              formats: uniqueFormats,
+              formats: ["square"],
               captions: opts?.keepCaptions ? captions : undefined,
               cutoutDataUrl: source === "cutout" ? cutout : undefined,
             }),
@@ -338,37 +337,18 @@ export function CreateWizard({ db }: { db: Database }) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              action: "polish",
+              action: "draft",
               intent,
               brief: { ...brief, extraNotes: voiceNote || brief.extraNotes },
               channels,
               beat: beat || undefined,
               captionLanguage: "en",
-              captions: Object.keys(captions).length ? captions : undefined,
             }),
           });
           const capJson = await capRes.json();
           if (capRes.ok && capJson.captions) {
             setCaptions(capJson.captions);
-            setCaptionsOrigin(capJson.captionsOrigin || "coded");
-          } else if (!Object.keys(captions).length) {
-            const draftRes = await fetch("/api/captions", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                action: "draft",
-                intent,
-                brief: { ...brief, extraNotes: voiceNote || brief.extraNotes },
-                channels,
-                beat: beat || undefined,
-                captionLanguage: "en",
-              }),
-            });
-            const draftJson = await draftRes.json();
-            if (draftRes.ok && draftJson.captions) {
-              setCaptions(draftJson.captions);
-              setCaptionsOrigin("coded");
-            }
+            setCaptionsOrigin("coded");
           }
         }
       }
@@ -845,6 +825,7 @@ export function CreateWizard({ db }: { db: Database }) {
                 void makePreview({
                   source: imageSource ?? undefined,
                   cutout: cutoutDataUrl ?? undefined,
+                  keepCaptions: true,
                 })
               }
             >
