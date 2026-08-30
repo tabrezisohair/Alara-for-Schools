@@ -133,13 +133,13 @@ export function formatsForChannels(channels: Channel[]) {
 }
 
 export const DEFAULT_CHANNELS: Record<Intent, Channel[]> = {
-  event: ["ig_post", "ig_story", "facebook", "whatsapp", "download"],
-  announcement: ["whatsapp", "facebook", "download"],
-  achievement: ["ig_post", "facebook", "whatsapp", "download"],
-  admissions: ["ig_post", "facebook", "linkedin", "whatsapp", "download"],
-  showcase: ["ig_post", "ig_story", "facebook", "download"],
-  photos_to_post: ["ig_post", "ig_story", "whatsapp", "download"],
-  other: ["ig_post", "whatsapp", "download"],
+  event: ["ig_post", "download"],
+  announcement: ["whatsapp", "download"],
+  achievement: ["ig_post", "download"],
+  admissions: ["ig_post", "download"],
+  showcase: ["ig_post", "download"],
+  photos_to_post: ["ig_post", "download"],
+  other: ["ig_post", "download"],
 };
 
 export const STATUS_LABEL: Record<string, string> = {

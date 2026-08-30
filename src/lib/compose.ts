@@ -937,6 +937,28 @@ function drawPhotoForward(
  * The image model is told to leave the top-left corner clear, and the plate
  * behind the mark keeps it readable if the model fills that corner anyway.
  */
+/** Fit one generated poster onto another aspect ratio without a second Gemini call. */
+export async function adaptPosterFormat(dataUrl: string, format: PosterFormat) {
+  const size = canvasSize(format);
+  const img = await loadImage(dataUrl);
+  if (!img) return dataUrl;
+  if (img.width === size.w && img.height === size.h) return dataUrl;
+  const canvas = document.createElement("canvas");
+  canvas.width = size.w;
+  canvas.height = size.h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return dataUrl;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.fillStyle = "#102a56";
+  ctx.fillRect(0, 0, size.w, size.h);
+  const scale = Math.max(size.w / img.width, size.h / img.height);
+  const w = img.width * scale;
+  const h = img.height * scale;
+  ctx.drawImage(img, (size.w - w) / 2, (size.h - h) / 2, w, h);
+  return canvas.toDataURL("image/jpeg", 0.9);
+}
+
 export async function stampLogo(opts: {
   dataUrl: string;
   brand: BrandProfile;

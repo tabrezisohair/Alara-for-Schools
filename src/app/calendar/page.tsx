@@ -10,6 +10,13 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { IconCalendar } from "@/components/icons";
 import type { CalendarEvent, ContentJob, Intent, JobStatus } from "@/lib/types";
 
+type ImportDuplicate = {
+  name: string;
+  date: string;
+  campus: string;
+  type: string;
+};
+
 type PendingDelete =
   | { kind: "event"; id: string; name: string; date: string }
   | { kind: "duplicates"; count: number }
@@ -62,6 +69,11 @@ export default function CalendarPage() {
   const [pending, setPending] = useState<PendingDelete | null>(null);
   const [filter, setFilter] = useState<DayFilter>("upcoming");
   const [pickedDate, setPickedDate] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [importNote, setImportNote] = useState<{
+    added: number;
+    duplicates: ImportDuplicate[];
+  } | null>(null);
 
   const duplicateKeys = useMemo(() => {
     if (!db) return new Set<string>();
@@ -75,6 +87,16 @@ export default function CalendarPage() {
     );
   }, [db]);
 
+  const extraCopies = useMemo(() => {
+    if (!db) return 0;
+    const counts = new Map<string, number>();
+    for (const row of db.calendar) {
+      const key = eventIdentity(row);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return [...counts.values()].reduce((sum, count) => sum + Math.max(0, count - 1), 0);
+  }, [db]);
+
   const days = useMemo(() => {
     if (!db) return [] as DayGroup[];
     return buildDayGroups(db.jobs, db.calendar, {
@@ -86,6 +108,29 @@ export default function CalendarPage() {
 
   if (error) return <p>{error}</p>;
   if (!db) return <p>Loading…</p>;
+
+  async function onImport(file: File, input: HTMLInputElement) {
+    setBusy(true);
+    try {
+      const form = new FormData();
+      form.set("file", file);
+      form.set("confirm", "true");
+      const res = await fetch("/api/calendar/import", { method: "POST", body: form });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Could not import");
+      setImportNote({
+        added: body.added ?? 0,
+        duplicates: body.duplicates ?? [],
+      });
+      await reload();
+    } catch (err) {
+      setImportNote(null);
+      alert(err instanceof Error ? err.message : "Could not import");
+    } finally {
+      input.value = "";
+      setBusy(false);
+    }
+  }
 
   async function confirmDelete() {
     if (!pending) return;
@@ -162,6 +207,34 @@ export default function CalendarPage() {
         </div>
       </div>
 
+      <div className="card flex flex-wrap gap-3">
+        <a className="btn-secondary" href="/api/calendar/template">
+          Download Excel template
+        </a>
+        <label className="btn-secondary inline-block cursor-pointer">
+          {busy ? "Importing…" : "Import Excel"}
+          <input
+            type="file"
+            accept=".xlsx,.xls"
+            className="hidden"
+            disabled={busy}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onImport(file, e.target);
+            }}
+          />
+        </label>
+        {extraCopies ? (
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setPending({ kind: "duplicates", count: extraCopies })}
+          >
+            Remove extra copies
+          </button>
+        ) : null}
+      </div>
+
       {pickedDate ? (
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="rounded-full bg-[var(--navy)] px-3 py-1 font-semibold text-white">
@@ -174,6 +247,33 @@ export default function CalendarPage() {
           >
             Clear date
           </button>
+        </div>
+      ) : null}
+
+      {importNote ? (
+        <div
+          className={`rounded-2xl border px-4 py-3 text-sm ${
+            importNote.duplicates.length
+              ? "border-amber-300 bg-amber-50 text-amber-950"
+              : "border-emerald-200 bg-emerald-50 text-emerald-950"
+          }`}
+        >
+          <p className="font-semibold">
+            {importNote.added
+              ? `${importNote.added} new date${importNote.added === 1 ? "" : "s"} added.`
+              : "No new dates added."}
+          </p>
+          {importNote.duplicates.length ? (
+            <ul className="mt-2 list-disc pl-5">
+              {importNote.duplicates.map((item, index) => (
+                <li key={`${item.name}-${item.date}-${index}`}>
+                  <span className="font-semibold">{item.name}</span>
+                  {item.date ? ` · ${item.date}` : ""}
+                  {item.campus ? ` · ${item.campus}` : ""}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       ) : null}
 
@@ -237,7 +337,7 @@ export default function CalendarPage() {
         </div>
       ) : (
         <div className="card text-sm text-[var(--muted)]">
-          Nothing on this view yet. Create a post with a date, or add school dates.
+          Nothing on this view yet. Create a post with a date, or import school dates from Excel.
         </div>
       )}
 

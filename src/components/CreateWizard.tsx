@@ -15,7 +15,7 @@ import {
   OTHER_CATEGORIES,
   SHOWCASE_TYPES,
 } from "@/lib/constants";
-import { composePoster, pickPosterPhoto, stampLogo } from "@/lib/compose";
+import { adaptPosterFormat, composePoster, pickPosterPhoto, stampLogo } from "@/lib/compose";
 import { deleteRecord, useAlara } from "@/lib/useAlara";
 import {
   isPosterSafeAsset,
@@ -244,6 +244,7 @@ export function CreateWizard({ db }: { db: Database }) {
     setError(null);
     try {
       const formats = formatsForChannels(channels);
+      const uniqueFormats = [...new Set(formats.map((item) => item.format))];
       const photoTreatment = brief.photoTreatment ?? "as_is";
       const source: ImageSource =
         opts?.source ??
@@ -271,7 +272,9 @@ export function CreateWizard({ db }: { db: Database }) {
               channels,
               beat: beat || undefined,
               captionLanguage: "en",
-              formats: ["square"],
+              formats: uniqueFormats.includes("square")
+                ? ["square"]
+                : uniqueFormats.slice(0, 1),
               captions: opts?.keepCaptions ? captions : undefined,
               cutoutDataUrl: source === "cutout" ? cutout : undefined,
             }),
@@ -283,24 +286,25 @@ export function CreateWizard({ db }: { db: Database }) {
             captionsApplied = true;
           }
           if (gemJson.posterOrigin === "gemini" && gemJson.posters) {
-            const mapped = formats.map((item) => ({
-              ...item,
-              dataUrl:
-                gemJson.posters[item.format] ||
-                gemJson.posters.square ||
-                gemJson.posters.story ||
-                gemJson.posters.wide ||
-                "",
-            }));
-            if (mapped.every((item) => item.dataUrl)) {
+            const master =
+              gemJson.posters.square ||
+              gemJson.posters.story ||
+              gemJson.posters.wide ||
+              "";
+            if (master) {
               made = await Promise.all(
-                mapped.map(async (item) => ({
-                  ...item,
-                  dataUrl: await stampLogo({
-                    dataUrl: item.dataUrl,
-                    brand: db.brand,
-                  }),
-                }))
+                formats.map(async (item) => {
+                  const raw =
+                    gemJson.posters[item.format] ||
+                    (await adaptPosterFormat(master, item.format));
+                  return {
+                    ...item,
+                    dataUrl: await stampLogo({
+                      dataUrl: raw,
+                      brand: db.brand,
+                    }),
+                  };
+                })
               );
               nextPosterOrigin = "gemini";
             }
@@ -332,8 +336,8 @@ export function CreateWizard({ db }: { db: Database }) {
           made.push({ ...item, dataUrl });
         }
         nextPosterOrigin = "alara";
-        if (!opts?.keepCaptions && !captionsApplied) {
-          const capRes = await fetch("/api/captions", {
+        if (!opts?.keepCaptions && !captionsApplied && !Object.keys(captions).length) {
+          const draftRes = await fetch("/api/captions", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -345,9 +349,9 @@ export function CreateWizard({ db }: { db: Database }) {
               captionLanguage: "en",
             }),
           });
-          const capJson = await capRes.json();
-          if (capRes.ok && capJson.captions) {
-            setCaptions(capJson.captions);
+          const draftJson = await draftRes.json();
+          if (draftRes.ok && draftJson.captions) {
+            setCaptions(draftJson.captions);
             setCaptionsOrigin("coded");
           }
         }
@@ -823,9 +827,9 @@ export function CreateWizard({ db }: { db: Database }) {
               disabled={busy}
               onClick={() =>
                 void makePreview({
+                  keepCaptions: true,
                   source: imageSource ?? undefined,
                   cutout: cutoutDataUrl ?? undefined,
-                  keepCaptions: true,
                 })
               }
             >

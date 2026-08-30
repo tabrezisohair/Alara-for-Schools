@@ -95,8 +95,8 @@ export async function POST(request: NextRequest) {
         cutoutDataUrl: body.cutoutDataUrl,
       });
       return Response.json({
-        captions: result.captions,
-        captionsOrigin: "gemini",
+        captions: current,
+        captionsOrigin: body.captions ? "human" : "coded",
         posters: result.posters,
         posterOrigin: result.posterOrigin,
         warning: result.warning,
